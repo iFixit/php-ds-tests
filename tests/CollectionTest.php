@@ -85,12 +85,12 @@ abstract class CollectionTest extends TestCase
 
     public function expectAccessByReferenceHasNoEffect()
     {
-        static::expectException(Notice::class);
+        static::expectNotice(Notice::class);
     }
 
     public function expectPropertyDoesNotExistException()
     {
-        static::expectException(Notice::class);
+        static::expectNotice(Notice::class);
     }
 
     public function expectReconstructionNotAllowedException()
@@ -164,20 +164,13 @@ abstract class CollectionTest extends TestCase
 
     public function assertInstanceDump(array $expected, $instance)
     {
-        ob_start();
-        $this->cleanVarDump($instance);
-        $actual = ob_get_clean();
+        $actual = $this->cleanVarDump($instance);
 
-        ob_start();
-        $this->cleanVarDump($expected);
-        $expected = ob_get_clean();
+        $expected = $this->cleanVarDump($expected);
+        $class = get_class($instance);
+        $expected = preg_replace('/^Array/m', "$class Object", $expected);
 
-        $class = preg_quote(get_class($instance));
-        $data  = preg_quote(substr($expected, 5)); // Slice past 'array'
-        $regex = preg_replace('/#\d+/', '#\d+', "object\($class\)#\d+ $data");
-
-        static::assertRegExp("~$regex~", $actual);
-
+        $this->assertEquals($expected, $actual);
     }
 
     public function assertSerialized(array $expected, $instance)
@@ -243,10 +236,11 @@ abstract class CollectionTest extends TestCase
      */
     protected function cleanVarDump($expression)
     {
-        $overload_var_dump = ini_get('xdebug.overload_var_dump');
-        ini_set('xdebug.overload_var_dump', 'off');
-        var_dump($expression);
-        ini_set('xdebug.overload_var_dump', $overload_var_dump);
+        $cli_color = ini_get('xdebug.cli_color');
+        ini_set('xdebug.cli_color', 0);
+        $dump = print_r($expression, true);
+        ini_set('xdebug.cli_color', $cli_color);
+        return $dump;
     }
 
     /**
